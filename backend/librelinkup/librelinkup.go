@@ -19,6 +19,7 @@ const (
 )
 
 var (
+	ErrLoginFailed         = errors.New("could not login to LibreLinkUp, make sure the username and password is correct")
 	ErrWrongRegionEndpoint = errors.New("user called wrong region")
 	linkupHeaders          = map[string][]string{
 		"User-Agent":      {"LibreLink"},
@@ -127,6 +128,9 @@ func callLogin(email, password string, endpoint Endpoint) (LoginResponse, error)
 		return LoginResponse{}, err
 	}
 	if lr.Status != 0 {
+		if lr.Status == 2 {
+			return LoginResponse{}, ErrLoginFailed
+		}
 		return LoginResponse{}, fmt.Errorf("error during login, status code %v, message: %s", lr.Status, lr.Error.Message)
 	}
 	return lr, nil
@@ -150,7 +154,7 @@ func Login(email, password string, endpoint Endpoint) (*Ticket, error) {
 func FindEndpoint(email, password string) (Endpoint, error) {
 	resp, err := callLogin(email, password, EndpointDefault)
 	if err != nil {
-		return EndpointDefault, fmt.Errorf("error while querying for endpoint: %w", err)
+		return EndpointDefault, err
 	}
 
 	if resp.Data.Redirect {

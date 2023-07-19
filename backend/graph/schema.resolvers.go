@@ -6,23 +6,82 @@ package graph
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
+	"github.com/spagettikod/opent1d/datastore"
+	"github.com/spagettikod/opent1d/event"
 	"github.com/spagettikod/opent1d/graph/model"
+	"github.com/spagettikod/opent1d/librelinkup"
 )
+
+// SaveSettings is the resolver for the saveSettings field.
+func (r *mutationResolver) SaveSettings(ctx context.Context, username *string, password *string) (*model.Settings, error) {
+	return nil, librelinkup.ErrLoginFailed
+
+	if username == nil {
+		return nil, fmt.Errorf("username must have a value")
+	}
+	if password == nil {
+		return nil, fmt.Errorf("password must have a value")
+	}
+	lg := r.Context.Logger.With().Str("function", "graph.SaveSettings").Str("username", *username).Logger()
+	settings, err := r.Context.DB.GetSettings()
+	if err != nil {
+		if err == datastore.ErrNotFound {
+			lg.Debug().Msg("settings were not found in database, creating new")
+			settings = datastore.Settings{}
+		} else {
+			lg.Err(err).Msg("could not load current settings")
+			return nil, err
+		}
+	}
+	settings.LibreLinkUpUsername = strings.TrimSpace(*username)
+	settings.LibreLinkUpPassword = strings.TrimSpace(*password)
+
+	lg.Debug().Msg("looking up region")
+	endpoint, err := librelinkup.FindEndpoint(settings.LibreLinkUpUsername, settings.LibreLinkUpPassword)
+	if err != nil {
+		lg.Err(err).Msgf("error occured while looking up user region")
+		return nil, err
+	}
+	lg.Debug().Msgf("found user endpoint region '%s'", endpoint.Region)
+	settings.LibreLinkUpRegion = endpoint.Region
+
+	if err := r.Context.DB.SaveSettings(settings); err != nil {
+		lg.Err(err).Msgf("error occured while saving settings")
+		return nil, err
+	}
+	// run event async, we don't need to wait for this to finish
+	go event.OnSettingsSaved(r.Context)
+	lg.Debug().Msg("done saving settings")
+	return (*model.Settings)(&settings), nil
+}
 
 // Settings is the resolver for the settings field.
 func (r *queryResolver) Settings(ctx context.Context) (*model.Settings, error) {
-	dbsettings, err := r.Store.GetSettings()
+	lg := r.Context.Logger.With().Str("function", "graph.Settings").Logger()
+	dbsettings, err := r.Context.DB.GetSettings()
 	if err != nil {
+		if err == datastore.ErrNotFound {
+			lg.Debug().Msg("no settings were found, returning an empty one")
+			return &model.Settings{}, nil
+		}
+		lg.Err(err).Msg("error while loading settings")
 		return nil, err
 	}
 	return &model.Settings{
 		LibreLinkUpUsername: dbsettings.LibreLinkUpUsername,
+		LibreLinkUpPassword: dbsettings.LibreLinkUpPassword,
 		LibreLinkUpRegion:   dbsettings.LibreLinkUpRegion,
 	}, nil
 }
 
+// Mutation returns MutationResolver implementation.
+func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
+
 // Query returns QueryResolver implementation.
 func (r *Resolver) Query() QueryResolver { return &queryResolver{r} }
 
+type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }

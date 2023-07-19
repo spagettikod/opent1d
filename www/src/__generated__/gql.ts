@@ -13,7 +13,8 @@ import { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/
  * Therefore it is highly recommended to use the babel or swc plugin for production.
  */
 const documents = {
-    "\n  query RootQuery {\n    settings {\n      LibreLinkUpUsername\n      LibreLinkUpEndpoint\n    }\n  }\n": types.RootQueryDocument,
+    "\n  query GetSettings {\n    settings {\n      LibreLinkUpUsername\n      LibreLinkUpPassword\n    }\n  }\n": types.GetSettingsDocument,
+    "\n  mutation SaveSettings($username: String!, $password: String!) {\n    saveSettings(username: $username, password: $password) {\n      LibreLinkUpUsername\n      LibreLinkUpPassword\n      LibreLinkUpRegion\n    }\n  }\n": types.SaveSettingsDocument,
 };
 
 /**
@@ -33,7 +34,11 @@ export function gql(source: string): unknown;
 /**
  * The gql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
-export function gql(source: "\n  query RootQuery {\n    settings {\n      LibreLinkUpUsername\n      LibreLinkUpEndpoint\n    }\n  }\n"): (typeof documents)["\n  query RootQuery {\n    settings {\n      LibreLinkUpUsername\n      LibreLinkUpEndpoint\n    }\n  }\n"];
+export function gql(source: "\n  query GetSettings {\n    settings {\n      LibreLinkUpUsername\n      LibreLinkUpPassword\n    }\n  }\n"): (typeof documents)["\n  query GetSettings {\n    settings {\n      LibreLinkUpUsername\n      LibreLinkUpPassword\n    }\n  }\n"];
+/**
+ * The gql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function gql(source: "\n  mutation SaveSettings($username: String!, $password: String!) {\n    saveSettings(username: $username, password: $password) {\n      LibreLinkUpUsername\n      LibreLinkUpPassword\n      LibreLinkUpRegion\n    }\n  }\n"): (typeof documents)["\n  mutation SaveSettings($username: String!, $password: String!) {\n    saveSettings(username: $username, password: $password) {\n      LibreLinkUpUsername\n      LibreLinkUpPassword\n      LibreLinkUpRegion\n    }\n  }\n"];
 
 export function gql(source: string) {
   return (documents as any)[source] ?? {};

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -31,6 +32,19 @@ func SettingsFromJson(jsn string) (Settings, error) {
 	settings := Settings{}
 	err := json.Unmarshal([]byte(jsn), &settings)
 	return settings, err
+}
+
+func (s Settings) IsValid() bool {
+	if strings.TrimSpace(s.LibreLinkUpUsername) == "" {
+		return false
+	}
+	if strings.TrimSpace(s.LibreLinkUpPassword) == "" {
+		return false
+	}
+	if strings.TrimSpace(s.LibreLinkUpRegion) == "" {
+		return false
+	}
+	return true
 }
 
 func (s Settings) ToJson() (string, error) {

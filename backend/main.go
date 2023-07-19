@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -9,9 +11,13 @@ import (
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"github.com/vektah/gqlparser/v2/gqlerror"
 
+	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/spagettikod/opent1d/datastore"
+	"github.com/spagettikod/opent1d/envctx"
+	"github.com/spagettikod/opent1d/event"
 	"github.com/spagettikod/opent1d/graph"
 	"github.com/spagettikod/opent1d/handle"
 	"github.com/spagettikod/opent1d/librelinkup"
@@ -23,6 +29,8 @@ const (
 	DB_PATH_DIR = "OpenT1D"
 	// DB_FILENAME name of the database file
 	DB_FILENAME = "opent1d.sqlite"
+
+	PORT = "8080"
 
 	LOG_KEY_DB = "database"
 )
@@ -54,7 +62,7 @@ func EnvOrDie(env string) string {
 }
 
 func main() {
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC3339})
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC3339}).Level(envctx.EnvToLogLevel())
 
 	dbPath := GetDBPath()
 	store, err := datastore.NewSQLiteStore(dbPath)
@@ -65,41 +73,25 @@ func main() {
 		log.Fatal().Err(err).Str(LOG_KEY_DB, dbPath).Msg("could not migrate database, exiting")
 	}
 
-	if err := librelinkup.StartScraper(store, log.Logger); err != nil {
-		log.Err(err).Msg("failed to start LibreLinkUp scraper")
-	}
+	ctx := envctx.NewContext(store, log.Logger)
 
-	srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{Store: store}}))
+	// this event can be async
+	go event.OnStartup(ctx)
 
-	// http.Handle("/", playground.Handler("GraphQL playground", "/query"))
+	srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{Context: ctx}}))
+	srv.SetErrorPresenter(func(ctx context.Context, e error) *gqlerror.Error {
+		err := graphql.DefaultErrorPresenter(ctx, e)
+
+		if errors.Is(e, librelinkup.ErrLoginFailed) {
+			err.Message = "Login failed, please verify username and password"
+		}
+
+		return err
+	})
+
 	http.Handle("/query", handle.Middleware(srv))
 	http.Handle("/", http.FileServer(http.Dir("/www")))
 
-	// http.Handle("/query", handle.Middleware(handle.GraphqlHandler(store)))
-	log.Fatal().Err(http.ListenAndServe(":8080", nil))
-
-	// email := EnvOrDie("GOLIBRE_EMAIL")
-	// password := EnvOrDie("GOLIBRE_PASSWORD")
-	// _, err = librelinkup.Login(email, password, librelinkup.EndpointUS)
-	// if err != nil {
-	// 	log.Fatalf("could not connect, exiting: %s", err)
-	// }
-
-	// connections, err := ticket.Connections()
-	// if err != nil {
-	// 	log.Fatalf("could not connect, exiting: %s", err)
-	// }
-	// if len(connections) != 1 {
-	// 	log.Fatalf("expected %v connections but found %v", 1, len(connections))
-	// }
-	// _, _, err = ticket.Graph(connections[0].PatienID)
-	// if err != nil {
-	// 	log.Fatalf("erro fetching graph values, exiting: %s", err)
-	// }
-	// gm := connections[0].GlucoseMeasurement
-	// ts, err := librelinkup.ToTime(gm.Timestamp)
-	// if err != nil {
-	// 	log.Fatalf("could not parse timestamp, exiting: %s", err)
-	// }
-	// fmt.Println(ts, gm.Value)
+	log.Info().Msgf("http server is listening on port %s", PORT)
+	log.Fatal().Err(http.ListenAndServe(fmt.Sprintf(":%s", PORT), nil))
 }

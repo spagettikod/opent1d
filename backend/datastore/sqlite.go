@@ -2,6 +2,7 @@ package datastore
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 
@@ -48,7 +49,11 @@ func (sls SQLiteStore) GetSettings() (Settings, error) {
 	row := sls.db.QueryRow("SELECT value FROM kv WHERE key = ?", KeySettings)
 	var jsn string
 	if err := row.Scan(&jsn); err != nil {
-		return Settings{}, fmt.Errorf("error while loading settings from SQLite: %w", err)
+		if errors.Is(err, sql.ErrNoRows) {
+			return Settings{}, ErrNotFound
+		} else {
+			return Settings{}, fmt.Errorf("error while loading settings from SQLite: %w", err)
+		}
 	}
 	return SettingsFromJson(jsn)
 }

@@ -12,11 +12,6 @@ type Query {
   settings: Settings!
 }
 
-# input NewTodo {
-#   text: String!
-#   userId: String!
-# }
-
-# type Mutation {
-#   createTodo(input: NewTodo!): Todo!
-# }
+type Mutation {
+  saveSettings(username: String, password:String): Settings!
+}
