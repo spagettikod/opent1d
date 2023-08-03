@@ -4,7 +4,7 @@
 
 type Settings {
 	LibreLinkUpUsername: String!
-	LibreLinkUpPassword: String!
+  LibreLinkUpPassword: String!
 	LibreLinkUpRegion: String!
 }
 

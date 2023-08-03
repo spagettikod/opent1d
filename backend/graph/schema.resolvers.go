@@ -17,13 +17,11 @@ import (
 
 // SaveSettings is the resolver for the saveSettings field.
 func (r *mutationResolver) SaveSettings(ctx context.Context, username *string, password *string) (*model.Settings, error) {
-	return nil, librelinkup.ErrLoginFailed
-
-	if username == nil {
-		return nil, fmt.Errorf("username must have a value")
+	if username == nil || len(strings.TrimSpace(*username)) == 0 {
+		return nil, ErrSchemaUsernameEmpty
 	}
-	if password == nil {
-		return nil, fmt.Errorf("password must have a value")
+	if password == nil || len(strings.TrimSpace(*password)) == 0 {
+		return nil, ErrSchemaPasswordEmpty
 	}
 	lg := r.Context.Logger.With().Str("function", "graph.SaveSettings").Str("username", *username).Logger()
 	settings, err := r.Context.DB.GetSettings()
@@ -55,7 +53,7 @@ func (r *mutationResolver) SaveSettings(ctx context.Context, username *string, p
 	// run event async, we don't need to wait for this to finish
 	go event.OnSettingsSaved(r.Context)
 	lg.Debug().Msg("done saving settings")
-	return (*model.Settings)(&settings), nil
+	return &model.Settings{LibreLinkUpUsername: settings.LibreLinkUpUsername, LibreLinkUpRegion: settings.LibreLinkUpRegion}, nil
 }
 
 // Settings is the resolver for the settings field.
@@ -72,7 +70,7 @@ func (r *queryResolver) Settings(ctx context.Context) (*model.Settings, error) {
 	}
 	return &model.Settings{
 		LibreLinkUpUsername: dbsettings.LibreLinkUpUsername,
-		LibreLinkUpPassword: dbsettings.LibreLinkUpPassword,
+		LibreLinkUpPassword: "******",
 		LibreLinkUpRegion:   dbsettings.LibreLinkUpRegion,
 	}, nil
 }
@@ -85,3 +83,14 @@ func (r *Resolver) Query() QueryResolver { return &queryResolver{r} }
 
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
+
+// !!! WARNING !!!
+// The code below was going to be deleted when updating resolvers. It has been copied here so you have
+// one last chance to move it out of harms way if you want. There are two reasons this happens:
+//   - When renaming or deleting a resolver the old code will be put in here. You can safely delete
+//     it when you're done.
+//   - You have helper methods in this file. Move them out to keep these resolver files clean.
+var (
+	ErrSchemaUsernameEmpty = fmt.Errorf("username must have a value")
+	ErrSchemaPasswordEmpty = fmt.Errorf("password must have a value")
+)

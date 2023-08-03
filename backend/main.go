@@ -82,8 +82,12 @@ func main() {
 	srv.SetErrorPresenter(func(ctx context.Context, e error) *gqlerror.Error {
 		err := graphql.DefaultErrorPresenter(ctx, e)
 
-		if errors.Is(e, librelinkup.ErrLoginFailed) {
+		if errors.Is(err, librelinkup.ErrLoginFailed) {
 			err.Message = "Login failed, please verify username and password"
+		} else if errors.Is(err, graph.ErrSchemaUsernameEmpty) {
+			err.Message = "Username must have a value"
+		} else if errors.Is(err, graph.ErrSchemaPasswordEmpty) {
+			err.Message = "Password must have a value"
 		}
 
 		return err

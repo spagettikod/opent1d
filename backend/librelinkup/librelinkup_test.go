@@ -23,6 +23,10 @@ func TestToTime(t *testing.T) {
 			ts:       "12/20/2023 10:01:57 AM",
 			expected: time.Date(2023, time.December, 20, 10, 1, 57, 0, time.UTC),
 		},
+		{
+			ts:       "8/2/2023 6:51:00 AM",
+			expected: time.Date(2023, time.August, 2, 6, 51, 0, 0, time.UTC),
+		},
 	}
 
 	for _, test := range tests {

@@ -104,7 +104,7 @@ type ActiveSensor struct {
 }
 
 func ToTime(libreTimestamp string) (time.Time, error) {
-	return time.Parse("1/02/2006 3:04:05 PM", libreTimestamp)
+	return time.Parse("1/2/2006 3:04:05 PM", libreTimestamp)
 }
 
 func callLogin(email, password string, endpoint Endpoint) (LoginResponse, error) {
