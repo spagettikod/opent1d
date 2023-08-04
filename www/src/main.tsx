@@ -6,7 +6,7 @@ import './index.css'
 import { ApolloClient, ApolloProvider, InMemoryCache } from '@apollo/client'
 
 const client = new ApolloClient({
-  uri: 'http://localhost:8080/query',
+  uri: import.meta.env.PROD ? '/query' : 'http://localhost:8080/query',
   cache: new InMemoryCache(),
 });
 
