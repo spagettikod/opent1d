@@ -29,7 +29,7 @@ RUN corepack prepare yarn@stable --activate
 RUN yarn
 RUN yarn build
 
-FROM scratch AS common_final
+FROM alpine:3.18.2 AS common_final
 COPY --from=frontend_build /source/dist /www
 VOLUME [ "/data" ]
 EXPOSE 8080
