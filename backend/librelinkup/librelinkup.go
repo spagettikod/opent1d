@@ -34,10 +34,11 @@ var (
 )
 
 type Ticket struct {
-	Token    string `json:"token"`
-	Expires  int64  `json:"expires"`
-	Duration int64  `json:"duration"`
-	endpoint Endpoint
+	Token    string   `json:"token"`
+	Expires  int64    `json:"expires"`
+	Duration int64    `json:"duration"`
+	Username string   `json:"-"`
+	Endpoint Endpoint `json:"-"`
 }
 
 type LibreLinkUpResponse struct {
@@ -147,7 +148,8 @@ func Login(email, password string, endpoint Endpoint) (*Ticket, error) {
 	}
 
 	t := resp.Data.AuthTicket
-	t.endpoint = endpoint
+	t.Username = email
+	t.Endpoint = endpoint
 	return &t, nil
 }
 
@@ -169,7 +171,7 @@ func FindEndpoint(email, password string) (Endpoint, error) {
 }
 
 func (ticket *Ticket) Connections() ([]Connection, error) {
-	req, err := http.NewRequest(http.MethodGet, ticket.endpoint.ConnectionsURL(), nil)
+	req, err := http.NewRequest(http.MethodGet, ticket.Endpoint.ConnectionsURL(), nil)
 	if err != nil {
 		return []Connection{}, err
 	}
@@ -190,7 +192,7 @@ func (ticket *Ticket) Connections() ([]Connection, error) {
 }
 
 func (ticket *Ticket) Graph(patientID string) (Connection, []GlucoseMeasurement, error) {
-	req, err := http.NewRequest(http.MethodGet, ticket.endpoint.GraphURL(patientID), nil)
+	req, err := http.NewRequest(http.MethodGet, ticket.Endpoint.GraphURL(patientID), nil)
 	if err != nil {
 		return Connection{}, []GlucoseMeasurement{}, err
 	}
