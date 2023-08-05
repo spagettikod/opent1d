@@ -10,16 +10,20 @@ FROM --platform=linux/amd64 golang_common AS backend_test_amd64
 RUN dpkg --add-architecture amd64 \
     && apt-get update \
     && apt-get install -y --no-install-recommends gcc-x86-64-linux-gnu libc6-dev-amd64-cross
-RUN CC=x86_64-linux-gnu-gcc go test -a -ldflags '-linkmode external -extldflags "-static"' ./...
+# RUN CC=x86_64-linux-gnu-gcc go test -a -ldflags '-linkmode external -extldflags "-static"' ./...
+RUN CC=x86_64-linux-gnu-gcc go test ./...
 
 FROM --platform=linux/arm64 golang_common AS backend_test_arm64
-RUN go test -a -ldflags '-linkmode external -extldflags "-static"' ./...
+# RUN go test -a -ldflags '-linkmode external -extldflags "-static"' ./...
+RUN go test ./...
 
 FROM --platform=linux/amd64 backend_test_amd64 AS backend_build_amd64
-RUN CC=x86_64-linux-gnu-gcc go build -o opent1d -a -ldflags '-linkmode external -extldflags "-static"' .
+# RUN CC=x86_64-linux-gnu-gcc go build -o opent1d -a -ldflags '-linkmode external -extldflags "-static"' .
+RUN CC=x86_64-linux-gnu-gcc go build -o opent1d .
 
 FROM --platform=linux/arm64 backend_test_arm64 AS backend_build_arm64
-RUN go build -o opent1d -a -ldflags '-linkmode external -extldflags "-static"' .
+# RUN go build -o opent1d -a -ldflags '-linkmode external -extldflags "-static"' .
+RUN go build -o opent1d .
 
 FROM node:18.16.1-slim AS frontend_build
 WORKDIR /source
