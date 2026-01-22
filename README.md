@@ -1,3 +1,5 @@
+### THIS PROJECT HAS BEEN MIGRATED TO https://codeberg.org/spagettikod/opent1d
+
 ## Build
 
 ```
